@@ -1,0 +1,439 @@
+<!--	
+	Testing in Chrome v85 and FF v80
+	
+	Last update in 15.03.21
+	
+	Сайт сверстан полностью вручную.
+-->	
+<?php
+header("Content-Type:text/html; charset=utf-8");
+?>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Аренда катеров">
+<title>pointbreak.club</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+	<div>
+		<div class='header_image'>
+			<img src='logo.png' class='header_logo'>
+		</div>
+		<div class='header_menu'>
+			<nav class='header_navigate'>
+				<span class='login'>Войти/Зарегистрироваться</span>
+				<span class='rent'>Заброванировать</span>
+			</nav>
+		</div>
+	</div>
+</header>
+<main>
+	<article>
+		<section class='hide' id='bookingConfirm'>
+			<div class='bookingInfo' id='bookingInfo'>
+				Date and Time
+			</div>
+			<br>
+			<div class='person' id='person'>
+				<form name='userData'>
+				<ul class='person_ul time'>
+					<li>
+						<laber>Как к Вам обращаться:</label>
+						<br>
+						<input type='text' name='userFullName'>
+					</li>
+					<li>
+						<laber>Телефон:</label>
+						<br>
+						<input type='text' name='userPhone'>
+					</li>
+					<li>
+						<button type="submit" id="submitCheckout" class='booking_btnCheckout'>Подтвердить</button>
+					</li>
+				</ul>
+				</form>
+			</div>
+			<div>
+				<button onclick='change()' class='booking_btnCheckout bookingConfirm_btnChange' id='btnChange'>Изменить</button>
+			</div>
+		</section>
+	</article>
+	<article>
+		<section class='section_calendar' id='section_calendar'>
+			<ul class='booking unselectable'>
+				<!--li class='booking_text'>Выберите дату и время аренды:</li-->
+				<li class='calendar_tHead'></li>
+				<li>
+					<table class='calendar_table'>
+						<tr>
+							<td class='calendar_daysName'>Пн</td>
+							<td class='calendar_daysName'>Вт</td>
+							<td class='calendar_daysName'>Ср</td>
+							<td class='calendar_daysName'>Чт</td>
+							<td class='calendar_daysName'>Пт</td>
+							<td class='calendar_daysName calendar_dayOff'>Сб</td>
+							<td class='calendar_daysName calendar_dayOff'>Вс</td>
+						</tr>
+					</table>
+				</li>
+				<li>
+					<table class="calendar mobile_calendar"></table>
+				</li>
+				<li>
+					<div class='booking_timePanel_hidden' id='booking_timePanel'>
+						<ul class="time" id='time'></ul>
+					</div>
+				</li>
+				<li>
+					<button onclick='checkout()' class='booking_btnCheckoutDisabled' id='btnCheckout'>Бронировать</button>
+				</li>
+			</ul>
+		</section>
+	</article>
+</main>
+<footer>
+	<span class='water footerText'>Температура воды 25 &#8451</span>
+	<br>
+	<span class='cosials footerText'>Мы в социальных сетях</span>
+	<br>
+	<nav class='followUs'>
+		Fb Ut Inst
+	</nav>
+</footer>
+</body>
+<script type="text/javascript">
+//
+const POST	=	{
+	//
+	total:	0,
+	//
+	date:	[],
+	//
+	time:	[],
+	//
+	addDateAfterToday( i ){
+		this.date	=	i;
+	}
+};
+//	Локализация
+const C_LOCALIS	=	{
+	calendar: {
+		daysName:	['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
+		pickDate:	'Выберите дату брони:'
+	},
+	//	Определяем язык браузера и возвращаем имена дней недели
+	getDayName(){
+		return this.calendar.daysName
+	},
+	//	Определяем язык браузера и возвращаем текст выбора даты календаря
+	pickDate(){
+		return this.calendar.pickDate
+	}
+};
+//	Стили
+const C_STYLES	=	{
+	name:		'calendar',
+	tHead:		'calendar_tHead',
+	cell:		'calendar_cell',
+	days:		'calendar_days',
+	daysName:	'calendar_daysName',
+	dayOff:		'calendar_dayOff',
+	daysGoneBy:	'calendar_daysGoneBy',
+	today:		'calendar_today',
+	selectedDay:'calendar_selectedDay',
+	selectedAnotherDay:'calendar_selectedAnotherDay',
+	maxRows:	5
+};
+//
+const C_STATE	=	{
+	//
+	dayCode:	-1,
+	maxRow:		C_STYLES.maxRows
+};
+//
+const C_DATA	=	{
+	dates:	[]
+};
+//
+const T_STYLES	=	{
+	name:			'time',
+	selectedTime:	'booking_timePanel_selectedTime',
+	timePanel:		'booking_timePanel',
+	timePanelActive:'booking_timePanel',
+	timePanelHidden:'booking_timePanel_hidden'
+};
+//
+const T_DATA	=	{
+	//	By minutes
+	startTime:	360,
+	lastTime:	1290,
+	interval:	30,
+	//
+	bookingStack:	{
+		start:	[],
+		end:	[]
+	},
+	//
+	selectDateAndTime( msIn ){
+		//console.log( 'input: ' + msIn );
+		if( this.bookingStack.start.includes( msIn ) ){
+			//console.log( "DELETE ?" );
+			let _tmp	=	this.bookingStack.start.filter( el => el != msIn );
+			this.bookingStack.start	=	_tmp;
+		}else{
+			this.bookingStack.start.push( msIn );
+		};
+	//console.log( 'all: ' + new Date(this.bookingStack.start[0]) );
+	},
+	//
+	checkDateAndTime( msIn ){
+		return this.bookingStack.start.includes( msIn );
+	},
+	//
+	getBookingDate( msIn ){
+		let _delta	=	(this.lastTime - this.startTime) * 60 * 1000;
+		
+		//console.log( new Date( msIn ) );
+		//
+		return this.bookingStack.start.find( el => ((el - msIn) <= _delta) && ((el - msIn) >= 0) );
+	},
+	//
+	checkBooking(){
+		return this.bookingStack.start.length;
+	},
+	//
+	getBookingText(){
+		let _txt	=	'';
+		//this.bookingStack.start.forEach( el => _txt += '<br>Время начала:<br>' + String(new Date( el )).split('GMT')[0] + '<br>Время завершения:<br>' + String(new Date( el+this.interval*60*1000 )).split('GMT')[0] );
+		//
+		let _formating	=	function( dateIn ){
+			return new Date( dateIn ).toLocaleString( undefined, {year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' } )
+		};
+		//this.bookingStack.start.forEach( el => _txt += '<br>Время начала:<br>' + new Date( el ).toLocaleString( undefined, {year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' } ) );
+		this.bookingStack.start.forEach( el => _txt += '<br>Время начала:<br>' + _formating(el) + '<br>Время завершения:<br>' + _formating(el+this.interval*60*1000) );
+		return _txt;
+	}
+};
+//
+const I_DATA	=	{
+	prefix:	'Подтвердите бронь:'
+};
+//	Использована ф-ция автоисправления дня месяца. Это позволяет не прописывать дни месяца на каждый год)
+//
+document.querySelector( '.' + C_STYLES.tHead ).appendChild( document.createTextNode( C_LOCALIS.pickDate() ) );
+//
+function addCalendar( tableID, _LOCALIS, _STYLES, iRows ) {
+	//
+	//let date	=	new Date();
+	//
+	let _table	=	document.querySelector( tableID );
+	//
+	let _newRow, _newCell, _newText, _newDiv, _newDate	=	0;
+	//
+	for( let _i = 0; _i < iRows; _i++ ){
+		//
+		_newRow	=	_table.insertRow( _i );
+		//
+		for( let _ch = 0; _ch < 7; _ch++ ){
+			//
+			_newCell	=	_newRow.insertCell( -1 );
+			//
+			_newDiv		=	document.createElement( 'div' );
+			//
+			_newDiv.classList.add( _STYLES.cell );
+			//
+			_newDate	=	new Date(
+				new Date().getFullYear(), 
+				new Date().getMonth(), 
+				//	Делаем поправку на день недели
+				_ch + 7*_i + new Date().getDate() - new Date().getDay() + 1
+			);
+			//
+			//if( _i != iRows ){
+				//
+				_newDiv.classList.add( _STYLES.days );
+				//
+				_newDiv.id	=	'd_' + +_newDate;
+				//	Помечаем бронированные даты
+				if( T_DATA.getBookingDate( +_newDate + T_DATA.startTime*60*1000 ) ){
+					_newDiv.classList.add( _STYLES.selectedAnotherDay );
+					//	
+					//C_STATE.maxRow	=	_i+1;
+				};
+				//	Выбор дат
+				_newDiv.onclick	=	function( event ){
+					//
+					document.querySelector( '.calendar' ).innerHTML	=	'';
+					//
+					let _thisDate	=	Number( this.id.split( '_' )[1] );
+					//	И выводим месяц
+					document.querySelector( '.calendar_tHead' ).innerHTML = new Date( _thisDate ).toLocaleString( undefined, {month: 'long'} );	//	!	ТЕСТОВАЯ РЕАЛИЗАЦИЯ	!	Не работает в Safary
+					//
+					//if( C_STATE.dayCode != ( _i+1 )*7 + _ch ){
+						//
+						C_STATE.dayCode	=	( _i+1 )*7 + _ch;
+						//
+						//if( C_STATE.maxRow < (_i+1) )	C_STATE.maxRow	=	_i+1;
+						//
+						//addCalendar( '.calendar', C_LOCALIS, C_STYLES, _i+1 );
+						addCalendar( '.calendar', C_LOCALIS, C_STYLES, C_STATE.maxRow );
+						//console.log( C_STATE.dayCode);
+						// Clear times table
+						document.querySelector( '#' + T_STYLES.name ).innerHTML	=	'';
+						//
+						addTime( Number( this.id.split( '_' )[1] ) );
+						//
+						document.querySelector( '#' + T_STYLES.timePanel ).className = T_STYLES.timePanelActive;
+					//}else{
+						//
+						//C_STATE.dayCode	=	-1;
+						//
+						//addCalendar( '.calendar', C_LOCALIS, C_STYLES, C_STYLES.maxRows );
+						// Cleadr times table
+						//document.querySelector( '#' + T_STYLES.name ).innerHTML	=	'';
+						//
+						//document.querySelector( '#' + T_STYLES.timePanel ).className = T_STYLES.timePanelHidden;
+					//};
+				};
+				//
+				_newDiv.onmouseover	=	function( event ){
+					//
+					let _thisDate	=	Number( this.id.split( '_' )[1] );
+					//	И выводим месяц
+					document.querySelector( '.calendar_tHead' ).innerHTML = new Date( _thisDate ).toLocaleString( undefined, {month: 'long'} );	//	!	ТЕСТОВАЯ РЕАЛИЗАЦИЯ	!	Не работает в Safary
+				};
+				//
+				if( !_i ){
+					//	Помечаем стилем сегодняшний день
+					if( _ch == (new Date().getDay()-1) ){ 
+						_newDiv.classList.add( _STYLES.today ) 
+					};
+					//	Помечаем стилем прошедшие дни
+					if( _ch < (new Date().getDay()-1) ){
+						_newDiv.classList.add( _STYLES.daysGoneBy );
+						//	Исключаем щелчек по прошедшим датам
+						_newDiv.onclick	=	null;
+					};
+				};
+				//
+				if( C_STATE.dayCode == ( _i+1 )*7 + _ch ){
+					//
+					_newDiv.classList.add( _STYLES.selectedDay );
+				};
+				//
+				_newText	=	document.createTextNode( 
+					//	День месяца
+					_newDate.getDate() 
+				);
+			//}else{
+			//	console.log( '_i: '+_i );
+			//};
+			//
+			_newDiv.appendChild( _newText );
+			//
+			_newCell.appendChild( _newDiv );
+		};
+	};
+};
+//
+addCalendar( '.'+C_STYLES.name, C_LOCALIS, C_STYLES, C_STYLES.maxRows );
+//
+function addTime( DATEday ){
+	let _table, _li, _div, _text, _DATEday	=	0;
+	//	[ ms ]
+	_DATEday	=	DATEday;
+	_table		=	document.querySelector( '#'+T_STYLES.name );
+	//console.log('today: '+_DATEday );
+	//
+	for( minutes = T_DATA.startTime; minutes <= T_DATA.lastTime; minutes += T_DATA.interval){
+		_li		=	document.createElement( 'li'  );
+		_div	=	document.createElement( 'div' );
+		_div.id	=	'd_' + (_DATEday + minutes*60*1000);
+		//	selected class css
+		//
+		//if( new Date( _DATEday ) >= new Date() ){
+			//
+			if( T_DATA.checkDateAndTime( _DATEday + minutes*60*1000 ) ){
+				_div.classList.add( T_STYLES.selectedTime );
+			};
+		//};
+		//
+		_div.onclick	=	function(event){
+			//
+			T_DATA.selectDateAndTime( Number(this.id.split('_')[1]) );
+			//	Проверяем на хоть одну бронь
+			if( T_DATA.checkBooking() ){
+				//
+				document.getElementById( 'btnCheckout' ).className = 'booking_btnCheckout';
+			}else{
+				document.getElementById( 'btnCheckout' ).className = 'booking_btnCheckoutDisabled';
+			}
+			//	selected class css
+			//document.getElementById( this.id ).classList.add( T_STYLES.selectedTime );
+			if( T_DATA.checkDateAndTime( Number(this.id.split('_')[1]) ) ){
+				//
+				document.getElementById( this.id ).classList.add( T_STYLES.selectedTime );
+			}else{
+				//
+				document.getElementById( this.id ).classList.remove( T_STYLES.selectedTime );
+			};
+		};
+		_text	=	document.createTextNode( 
+			//new Date( Number(_div.id.split('_')[1]) ).getHours() +
+			Math.floor(minutes / 60) + ': ' + (minutes%60 == 0 ? '00' : minutes%60) +
+			'  -  ' + 
+			Math.floor((minutes + T_DATA.interval) / 60) + ': ' +  ((minutes + T_DATA.interval)%60 == 0 ? '00' : (minutes + T_DATA.interval)%60)
+		);
+		//
+		//_div.classList.add(  );
+		//
+		_div.appendChild( _text );
+		_li.appendChild( _div );
+		_table.append( _li );
+	//
+	};
+};
+//
+function checkout(){
+	//	Проверяем еще раз доступное время брони из серевера
+	//	--
+	//	
+	document.querySelector( '#bookingInfo' ).innerHTML	=	I_DATA.prefix + T_DATA.getBookingText();
+	//
+	document.querySelector( '#section_calendar' ).className	=	'hide';
+	//
+	document.querySelector( '#bookingConfirm' ).className	=	'bookingConfirm';
+	
+};
+
+</script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
